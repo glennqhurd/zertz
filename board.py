@@ -145,14 +145,27 @@ class Board:
         self.board[src] = ' '
         return captured
 
-    # TODO(lhurd): Account for multiple jumps.
     def legal_captures(self):
         captures = []
         for (a, b), c in MIDPOINT.items():
             if (self.board[a] in 'bgw' and self.board[c] in 'bgw' and
                         self.board[b] == ' '):
-                captures.append('%s-%s' % (a, b))
-        return captures
+                captures += self.extend_capture([a, c, b])
+        return ['-'.join(c[::2]) for c in captures]
+
+    def extend_capture(self, jump_list):
+        continuations = []
+        jumped = set(jump_list[1::2])  # marbles that have already been jumped
+        for (a, b), c in MIDPOINT.items():
+            if c not in jumped and self.board[c] in 'bgw':
+                if a == jump_list[-1] and self.board[b] == ' ':
+                    continuations += self.extend_capture(jump_list + [c, b])
+                elif b == jump_list[-1] and self.board[a] == ' ':
+                    continuations += self.extend_capture(jump_list + [c, a])
+        if continuations:
+            return continuations
+        else:
+            return [jump_list]
 
     def legal_standard_moves(self, player):
         moves = []
