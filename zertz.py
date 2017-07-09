@@ -1,12 +1,12 @@
 __author__ = 'lhurd'
 
+import logging
+import random
+import re
+
 from board import Board
 from player import Player
 from tables import MIDPOINT
-
-import logging
-import re
-
 
 STD_PATTERN = '([bgw])([a-g][1-8]),([a-g][1-8])'
 CAPTURE_PATTERN = '(([a-g][1-8])-)+([a-g][1-8])'
@@ -54,29 +54,50 @@ def make_move(board, move, player):
     if status:
         add_marbles(player.marbles, marbles)
         return player.has_won()
-    raise Exception('Illegal move %s.' % move)
     return False
 
 
+def prompt_for_move(board, player):
+    legal = board.legal_captures()
+    if len(legal) == 0:
+        legal = board.legal_standard_moves(player)
+    valid = False
+    m = ''
+    while not valid:
+        m = raw_input('Move? ')
+        valid = m.lower() in legal
+        if not valid:
+            print legal
+    return m
+
+
+def random_move(board, player):
+    legal = board.legal_captures()
+    if len(legal) == 0:
+        legal = board.legal_standard_moves(player)
+    return legal[random.randint(0, len(legal) - 1)]
+
 
 if __name__ == '__main__':
-    p1 = Player('Player 1')
-    p2 = Player('Player 2')
+    p1 = Player('Human Player')
+    p2 = Player('Computer Player')
     b = Board()
-    for move_num, move in enumerate(SAMPLE_GAME):
-        cur_player = p1 if move_num % 2 == 0 else p2
-        print '\nMove %s Player %s Move %s' % (move_num, cur_player.name, move)
-        if make_move(b, move, cur_player):
-            print 'Game won by %s' % cur_player.name
-            b.print_board()
-            print cur_player.marbles
-            break
+    # for move_num, move in enumerate(SAMPLE_GAME):
+    move_num = 1
+    b.print_board()
+    while True:
+        if move_num % 2 == 1:
+            cur_player = p1
+            move = random_move(b, cur_player)
         else:
-            b.print_board()
-            captures = b.legal_captures()
-            if captures:
-                print 'Captures %s' % b.legal_captures()
-            else:
-                print 'Std %s' % b.legal_standard_moves(cur_player)
-            print '%s: %s' % (cur_player.name, cur_player.marbles)
-
+            cur_player = p2
+            move = random_move(b, cur_player)
+        print '\nMove %s Player: %s Move %s' % (
+            move_num, cur_player.name, move)
+        move_num += 1
+        game_over = make_move(b, move, cur_player)
+        print b.short_board_string(p1, p2)
+        b.print_marbles(p1, p2)
+        if game_over:
+            print 'Game won by %s' % cur_player.name
+            break

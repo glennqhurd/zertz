@@ -1,9 +1,9 @@
 __author__ = 'lhurd'
 
-from tables import RINGS, MIDPOINT
 from collections import deque
-
 import logging
+
+from tables import RINGS, MIDPOINT
 
 
 def neighbors(r):
@@ -39,8 +39,14 @@ class Board:
             self.board[r] = ' '
         self.marbles = {'b': 10, 'g': 8, 'w': 6}
 
-    def short_board_string(self):
-        return ''.join([self.board[r] for r in RINGS])
+    def short_board_string(self, p1, p2):
+        return ''.join([str(p1.marbles['b']) +
+                        str(p1.marbles['g']) +
+                        str(p1.marbles['w']) +
+                        str(p2.marbles['b']) +
+                        str(p2.marbles['g']) +
+                        str(p2.marbles['w'])] +
+                       [self.board[r] for r in RINGS])
 
     # TODO(lhurd): Remove sides bounding empty hexes.
     def print_board(self):
@@ -74,7 +80,7 @@ class Board:
         return [r for r in RINGS if self.board[r] == ' ']
 
     def accessible(self, r):
-        if self.board[r] == '.':  # Check ring has not already been removed.
+        if self.board[r] != ' ':  # Check ring is present and empty..
             return False
         n = Board.NEIGHBORS[r]
         if len(n) < 6:  # True for rings on the edge of the board.
@@ -151,6 +157,9 @@ class Board:
             if (self.board[a] in 'bgw' and self.board[c] in 'bgw' and
                         self.board[b] == ' '):
                 captures += self.extend_capture([a, c, b])
+            elif (self.board[b] in 'bgw' and self.board[c] in 'bgw' and
+                          self.board[a] == ' '):
+                captures += self.extend_capture([b, c, a])
         return ['-'.join(c[::2]) for c in captures]
 
     def extend_capture(self, jump_list):
@@ -184,5 +193,31 @@ class Board:
                     moves.append('%s%s,%s' % (m, s, d))
         return moves
 
+    def print_marbles(self, player1, player2):
+        print 'Supply [Black %s Grey %s White %s]' % (self.marbles['b'],
+                                                      self.marbles['g'],
+                                                      self.marbles['w'])
+        for p in (player1, player2):
+            print 'Name: %s [Black %s Grey %s White %s]' % (p.name,
+                                                            p.marbles['b'],
+                                                            p.marbles['g'],
+                                                            p.marbles['w'])
 
 
+if __name__ == '__main__':
+    b = Board()
+    for r in RINGS:
+        b.board[r] = '.'
+    b.board['a1'] = 'b'
+    b.board['e4'] = 'b'
+    b.board['g1'] = 'b'
+    b.board['d3'] = 'g'
+    b.board['e5'] = 'g'
+    b.board['a3'] = 'w'
+    b.board['b4'] = 'w'
+    b.board['e2'] = ' '
+    b.board['e3'] = ' '
+    b.board['f3'] = ' '
+    b.board['f4'] = ' '
+    b.board['g3'] = ' '
+    print b.legal_captures()
