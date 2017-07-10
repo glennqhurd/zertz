@@ -1,9 +1,11 @@
 __author__ = 'lhurd'
 
 from collections import deque
+import copy
 import logging
+import re
 
-from tables import RINGS, MIDPOINT
+from tables import RINGS, MIDPOINT, INFINITY, NEGATIVE_INFINITY
 
 
 def neighbors(r):
@@ -32,20 +34,30 @@ def neighbors_cache():
 
 class Board:
     NEIGHBORS = neighbors_cache()
+    STD_PATTERN = '([bgw])([a-g][1-8]),([a-g][1-8])'
+    CAPTURE_PATTERN = '(([a-g][1-8])-)+([a-g][1-8])'
 
-    def __init__(self):
-        self.board = {}
-        for r in RINGS:
-            self.board[r] = ' '
-        self.marbles = {'b': 10, 'g': 8, 'w': 6}
+    def __init__(self, other=None, player=None, opponent=None):
+        if other:
+            self.board = copy.copy(other.board)
+            self.marbles = copy.copy(other.marbles)
+            self.player = copy.deepcopy(other.player)
+            self.opponent = copy.deepcopy(other.opponent)
+        else:
+            self.board = {}
+            self.player = player
+            self.opponent = opponent
+            for r in RINGS:
+                self.board[r] = ' '
+                self.marbles = {'b': 10, 'g': 8, 'w': 6}
 
-    def short_board_string(self, p1, p2):
-        return ''.join([str(p1.marbles['b']) +
-                        str(p1.marbles['g']) +
-                        str(p1.marbles['w']) +
-                        str(p2.marbles['b']) +
-                        str(p2.marbles['g']) +
-                        str(p2.marbles['w'])] +
+    def short_board_string(self):
+        return ''.join([str(self.player.marbles['b']) +
+                        str(self.player.marbles['g']) +
+                        str(self.player.marbles['w']) +
+                        str(self.player.opponent.marbles['b']) +
+                        str(self.player.opponent.marbles['g']) +
+                        str(self.player.opponent.marbles['w'])] +
                        [self.board[r] for r in RINGS])
 
     # TODO(lhurd): Remove sides bounding empty hexes.
@@ -72,6 +84,7 @@ class Board:
         print '        \__/%s \__/' % b['d1']
         print '           \__/\n'
         print '   A1 B1 C1 D1 E1 F1 G1'
+        self.print_marbles()
 
     def accessible_rings(self):
         return [r for r in RINGS if self.accessible(r)]
@@ -113,7 +126,7 @@ class Board:
                 self.board[r] = '.'
         return count
 
-    def standard_move(self, marble, placed, removed, player):
+    def standard_move_helper(self, marble, placed, removed):
         if self.board[placed] != ' ':
             logging.debug('Ring: %s not empty or not present.',
                           placed)
@@ -128,7 +141,7 @@ class Board:
             return False, None
         # If there are no marbles left in the supply, the player uses his own.
         marbles = self.marbles if sum(
-            self.marbles.values()) else player.marbles
+            self.marbles.values()) else self.player.marbles
         if marbles[marble] == 0:
             logging.debug('No %s marbles are available.', marble)
             return False, None
@@ -193,15 +206,66 @@ class Board:
                     moves.append('%s%s,%s' % (m, s, d))
         return moves
 
-    def print_marbles(self, player1, player2):
+    def print_marbles(self):
         print 'Supply [Black %s Grey %s White %s]' % (self.marbles['b'],
                                                       self.marbles['g'],
                                                       self.marbles['w'])
-        for p in (player1, player2):
+        for p in (self.player, self.opponent):
             print 'Name: %s [Black %s Grey %s White %s]' % (p.name,
                                                             p.marbles['b'],
                                                             p.marbles['g'],
                                                             p.marbles['w'])
+
+    def legal_moves(self):
+        legal = self.legal_captures()
+        if len(legal) == 0:
+            legal = self.legal_standard_moves(self.player)
+        return legal
+
+    def make_move(self, move):
+        status, marbles = self.capture_move(move)
+        if status:
+            self.player.add_marbles(marbles)
+        else:
+            status, marbles = self.standard_move(move)
+            if status:
+                self.player.add_marbles(marbles)
+            else:
+                raise Exception('Illegal move.')
+        t = self.player
+        self.player = self.opponent
+        self.opponent = t
+        return self.player.has_won()
+
+    def standard_move(self, move):
+        m = re.match(self.STD_PATTERN, move.lower())
+        if not m:
+            return False, None
+        return self.standard_move_helper(m.group(1), m.group(2), m.group(3))
+
+    def capture_move(self, move):
+        m = re.match(self.CAPTURE_PATTERN, move.lower())
+        if not m:
+            # logging.debug('Badly formed move string: %s.', move)
+            return False, None
+        rl = move.split('-')
+        count = {'b': 0, 'g': 0, 'w': 0}
+        for i in range(len(rl) - 1):
+            if tuple(sorted((rl[i], rl[i + 1]))) not in MIDPOINT:
+                return False, None
+            count[self.single_capture(rl[i], rl[i + 1])] += 1
+        return True, count
+
+    def evaluate(self):
+        logging.debug('P1 %d P2 %d', self.player.score(),
+                      self.opponent.score())
+        s1 = self.player.score()
+        if s1 == INFINITY:
+            return INFINITY
+        s2 = self.opponent.score()
+        if s2 == INFINITY:
+            return NEGATIVE_INFINITY
+        return s1 - s2
 
 
 if __name__ == '__main__':

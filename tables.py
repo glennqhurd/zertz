@@ -1,5 +1,14 @@
 __author__ = 'lhurd'
 
+NEGATIVE_INFINITY = -99999
+INFINITY = 99999
+
+SAMPLE_GAME = ['wd4,d1', 'wf2,d7', 'wb3,g4', 'wc2,f5', 'bf3,f1', 'f2-f4',
+               'be5,g3', 'f4-d6', 'bc6,b1', 'c6-e5', 'bf4,a1', 'f4-d6',
+               'bb4,b2', 'b3-b5', 'we6,g2', 'e6-c5', 'b5-d5-d3', 'c2-e3',
+               'gd3,f3', 'e3-c2', 'gd2,f2', 'c2-e1', 'gd2,e2', 'e1-c2',
+               'gd2,c1', 'c2-e1', 'wg1,d2']
+
 MIDPOINT = {('a1', 'a3'): 'a2', ('a1', 'c1'): 'b1', ('a1', 'c3'): 'b2',
             ('a2', 'a4'): 'a3', ('a2', 'c2'): 'b2', ('a2', 'c4'): 'b3',
             ('a3', 'c3'): 'b3', ('a3', 'c5'): 'b4', ('a4', 'c4'): 'b4',

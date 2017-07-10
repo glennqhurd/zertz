@@ -1,3 +1,5 @@
+# Old module not used any more.
+
 __author__ = 'lhurd'
 
 import logging
