@@ -159,6 +159,8 @@ class Board:
         if mid is None:
             return None
         captured = self.board[mid]
+        if captured not in 'bgw':
+            raise Exception('Illegal capture %s -> %s.' % (src, dest))
         self.board[mid] = ' '
         self.board[dest] = self.board[src]
         self.board[src] = ' '
@@ -231,7 +233,7 @@ class Board:
             if status:
                 self.player.add_marbles(marbles)
             else:
-                raise Exception('Illegal move.')
+                raise Exception('Illegal move %s.', move)
         t = self.player
         self.player = self.opponent
         self.opponent = t
