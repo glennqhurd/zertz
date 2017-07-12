@@ -36,8 +36,9 @@ def find_move(board):
     for child in children[:MAX_CHILDREN]:
         new_board = Board(board)
         new_board.make_move(child)
-        value = negamax(new_board, INITIAL_DEPTH, NEGATIVE_INFINITY,
-                        INFINITY)
+        value = -negamax(new_board, INITIAL_DEPTH, NEGATIVE_INFINITY,
+                         INFINITY)
+        logging.info('Child: %s Value %d', child, value)
         if value > best_value:
             best_value = value
             best_children = []
@@ -67,30 +68,33 @@ def negamax(board, depth, alpha, beta):
     """
     # We do not stop the search if there are pending captures.
     if depth <= 0:  # and not board.legal_captures():
-        return -board.evaluate()
+        return board.evaluate()
     best_value = NEGATIVE_INFINITY
     children = board.legal_moves()
     random.shuffle(children)
-    logging.debug('len children %d', len(children))
+    # logging.debug('len children %d', len(children))
     for child in children[:MAX_CHILDREN]:
         new_board = Board(board)
         new_board.make_move(child)
         value = negamax(new_board, depth - 1, -beta, -alpha)
         best_value = max(best_value, value)
+        best_move = child
         alpha = max(alpha, value)
         if alpha >= beta:
             break
-    return -best_value
+    # logging.info('%s: Depth %d best_value %d', best_move, depth, best_value)
+    return best_value
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     random.seed(999)
     b = Board(player=Player('Player 1'), opponent=Player('Player 2'))
     # for move_num, move in enumerate(SAMPLE_GAME):
     move_num = 1
     b.print_board()
     while True:
+        logging.info('Move %d', move_num)
         move = find_move(b)
         print '\nMove %s Player: %s Move %s' % (
             move_num, b.player.name, move)
@@ -98,5 +102,5 @@ if __name__ == '__main__':
         game_over = b.make_move(move)
         b.print_board()
         if game_over:
-            print 'Game won by %s' % b.player.name
+            print 'Game won by %s' % b.opponent.name
             break

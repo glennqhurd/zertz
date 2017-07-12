@@ -237,7 +237,7 @@ class Board:
         t = self.player
         self.player = self.opponent
         self.opponent = t
-        return self.player.has_won()
+        return self.opponent.has_won()
 
     def standard_move(self, move):
         m = re.match(self.STD_PATTERN, move.lower())
