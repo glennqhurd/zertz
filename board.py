@@ -224,6 +224,11 @@ class Board:
             legal = self.legal_standard_moves(self.player)
         return legal
 
+    def try_move(self, move):
+        new_board = Board(self)
+        win = new_board.make_move(move)
+        return win, new_board
+
     def make_move(self, move):
         status, marbles = self.capture_move(move)
         if status:
@@ -259,14 +264,14 @@ class Board:
         return True, count
 
     def evaluate(self):
-        logging.debug('P1 %d P2 %d', self.player.score(),
-                      self.opponent.score())
         s1 = self.player.score()
         if s1 == INFINITY:
             return INFINITY
         s2 = self.opponent.score()
         if s2 == INFINITY:
             return NEGATIVE_INFINITY
+        logging.debug('%s %d %s %d = %d', self.player.name, s1,
+                      self.opponent.name, s2, s1 - s2)
         return s1 - s2
 
 

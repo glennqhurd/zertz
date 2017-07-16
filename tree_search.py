@@ -12,7 +12,7 @@ from board import Board
 from player import Player
 from tables import INFINITY, NEGATIVE_INFINITY
 
-INITIAL_DEPTH = 3
+INITIAL_DEPTH = 4
 MAX_CHILDREN = 4
 
 STD_PATTERN = '([bgw])([a-g][1-8]),([a-g][1-8])'
@@ -34,10 +34,12 @@ def find_move(board):
     children = board.legal_moves()
     random.shuffle(children)
     for child in children[:MAX_CHILDREN]:
-        new_board = Board(board)
-        new_board.make_move(child)
+        won, new_board = board.try_move(child)
+        if won:
+            return child
+        moves = [child]
         value = -negamax(new_board, INITIAL_DEPTH, NEGATIVE_INFINITY,
-                         INFINITY)
+                         INFINITY, moves)
         logging.info('Child: %s Value %d', child, value)
         if value > best_value:
             best_value = value
@@ -48,13 +50,14 @@ def find_move(board):
     if best_children:
         best_child = best_children[random.randint(0, len(best_children) - 1)]
         # best_child = best_children[0]
+    logging.info('Choice %s value %d', best_child, best_value)
     return best_child
 
 
-def negamax(board, depth, alpha, beta):
-    """Perform an alpha beta search of the move tree using the symmetry
-    that we can flip the board to always look at things from black's point
-    of view.
+def negamax(board, depth, alpha, beta, moves):
+    """Perform an alpha beta search of the move tree.  The act of moving flips
+    the roles of player/opponent which implicitly adds a minus sign to the
+    evaluation.
 
     Args:
       board: board
@@ -68,21 +71,25 @@ def negamax(board, depth, alpha, beta):
     """
     # We do not stop the search if there are pending captures.
     if depth <= 0:  # and not board.legal_captures():
-        return board.evaluate()
+        best_value = board.evaluate()
+        logging.info('Depth %d moves %s value %d', depth, moves, best_value)
+        return best_value
     best_value = NEGATIVE_INFINITY
     children = board.legal_moves()
     random.shuffle(children)
     # logging.debug('len children %d', len(children))
     for child in children[:MAX_CHILDREN]:
-        new_board = Board(board)
-        new_board.make_move(child)
-        value = negamax(new_board, depth - 1, -beta, -alpha)
+        won, new_board = board.try_move(child)
+        if won:
+            return INFINITY
+        moves.append(child)
+        value = -negamax(new_board, depth - 1, -beta, -alpha, moves)
+        moves.pop()
         best_value = max(best_value, value)
-        best_move = child
         alpha = max(alpha, value)
         if alpha >= beta:
             break
-    # logging.info('%s: Depth %d best_value %d', best_move, depth, best_value)
+    logging.info('Depth %d moves %s value %d', depth, moves, best_value)
     return best_value
 
 
